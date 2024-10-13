@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useUser } from '@/context/user'; 
 
 type Todo = {
   id: number;
@@ -15,27 +16,30 @@ type Todo = {
 
 export default function ClientTodo() {
   const supabase = createClient();
-  const [user, setUser] = useState(supabase.auth.getUser());
-  const [todos, setTodos] = useState<Todo[] | null>(null);
+  const user = useUser(); 
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState<string>("");
   const [priority, setPriority] = useState<number>(1);
   const [editId, setEditId] = useState<number | null>(null);
+  console.log("Current user:", user); // kontroll
 
   useEffect(() => {
-    const getData = async () => {
-      const { data } = await supabase.from("todos").select();
-      setTodos(data);
+    const getTodos = async () => {
+      const { data: todosData } = await supabase.from("todos").select();
+      setTodos(todosData || []);
     };
-    getData();
+
+    getTodos();
   }, []);
 
   const addTodo = async () => {
-    if (!title) return;
+    if (!title || !user) return; 
 
     const { data, error } = await supabase.from("todos").insert([
       {
         title: title,
         priority: priority,
+        user_id: user.id, 
       },
     ]);
 
@@ -46,8 +50,9 @@ export default function ClientTodo() {
 
     setTitle("");
     setPriority(1);
-    const { data: updatedTodos } = await supabase.from("todos").select();
-    setTodos(updatedTodos);
+    const updatedTodos = await supabase.from("todos").select();
+    setTodos(updatedTodos?.data || []);
+    
   };
 
   const updateTodo = async () => {
@@ -63,11 +68,8 @@ export default function ClientTodo() {
       return;
     }
 
-    setTodos(
-      (prev) =>
-        prev?.map((todo) =>
-          todo.id === editId ? { id: editId, title, priority } : todo
-        ) || []
+    setTodos((prev) =>
+      prev.map((todo) => (todo.id === editId ? { ...todo, title, priority } : todo))
     );
 
     setEditId(null);
@@ -83,7 +85,7 @@ export default function ClientTodo() {
       return;
     }
 
-    setTodos((prev) => prev?.filter((todo) => todo.id !== id) || null);
+    setTodos((prev) => prev.filter((todo) => todo.id !== id));
   };
 
   const startEditing = (todo: Todo) => {
@@ -102,10 +104,7 @@ export default function ClientTodo() {
       <CardContent>
         <ul className="space-y-4 mb-6">
           {todos.map((todo) => (
-            <li
-              key={todo.id}
-              className="flex justify-between items-center p-2 border-b"
-            >
+            <li key={todo.id} className="flex justify-between items-center p-2 border-b">
               <div>
                 <span className="font-semibold">{todo.title}</span> - Priority:{" "}
                 <span className="text-blue-500">{todo.priority}</span>
