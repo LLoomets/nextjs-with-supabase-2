@@ -99,7 +99,7 @@ export default function ClientTodo() {
   return (
     <Card className="max-w-md mx-auto p-6 mt-6 shadow-lg">
       <CardHeader>
-        <CardTitle className="text-center">Todo List</CardTitle>
+        <CardTitle className="text-center">Client Todo List</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-4 mb-6">
